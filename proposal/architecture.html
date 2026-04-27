@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Meridian — Inventory Dashboard Architecture</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-alt: #f8fafc;
+      --fg: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --accent: #2563eb;
+      --accent-soft: #eff6ff;
+      --warn: #d97706;
+      --green: #059669;
+      --slate-100: #f1f5f9;
+      --shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif;
+      background: var(--bg-alt);
+      color: var(--fg);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 3rem 1.75rem 5rem;
+    }
+    h1 {
+      font-size: 2.25rem;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.5rem;
+    }
+    h2 {
+      font-size: 1.4rem;
+      letter-spacing: -0.01em;
+      margin: 2.25rem 0 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 {
+      font-size: 1.05rem;
+      margin: 1.5rem 0 0.5rem;
+    }
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 0.75rem;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 0.875rem;
+      margin: 0 0 2rem;
+    }
+    p, ul, ol { color: #334155; }
+    code, pre {
+      font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+      font-size: 0.85em;
+    }
+    code {
+      background: var(--slate-100);
+      padding: 0.1em 0.4em;
+      border-radius: 4px;
+    }
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    pre code { background: none; padding: 0; color: inherit; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      box-shadow: var(--shadow);
+      background: var(--bg);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.625rem 0.875rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.875rem;
+    }
+    th {
+      background: var(--bg-alt);
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+    }
+    .pill {
+      display: inline-block;
+      padding: 0.15em 0.55em;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .pill-done { background: #d1fae5; color: #065f46; }
+    .pill-partial { background: #fef3c7; color: #92400e; }
+    .pill-todo { background: #fee2e2; color: #991b1b; }
+
+    /* Diagram */
+    .diagram {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .layer {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1rem 0.875rem;
+      box-shadow: var(--shadow);
+    }
+    .layer h4 {
+      margin: 0 0 0.5rem;
+      font-size: 0.95rem;
+    }
+    .layer .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      color: var(--accent);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    .layer ul {
+      margin: 0;
+      padding-left: 1.1rem;
+      font-size: 0.85rem;
+      color: #334155;
+    }
+    .layer li { margin-bottom: 0.25rem; }
+    .arrow {
+      grid-column: span 3;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin: 0.25rem 0;
+    }
+
+    .callout {
+      background: var(--accent-soft);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      margin: 1rem 0;
+      color: #1e3a8a;
+      font-size: 0.9rem;
+    }
+    .callout.warn {
+      background: #fef3c7;
+      border-left-color: var(--warn);
+      color: #78350f;
+    }
+    @media print {
+      body { background: white; }
+      pre { background: #1e293b; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <span class="eyebrow">RFP MC-2026-0417 · R4 Deliverable</span>
+  <h1>Inventory Dashboard — Architecture Overview</h1>
+  <p class="meta">Prepared for Meridian Components IT · April 27, 2026</p>
+
+  <h2>1. Purpose</h2>
+  <p>
+    This document captures the current state of Meridian's inventory dashboard
+    application as of the engagement handover. It is intended as orientation for
+    Meridian IT — to understand what is running, where it lives, and what
+    surfaces will need to be touched for ongoing change.
+  </p>
+
+  <h2>2. System at a glance</h2>
+  <div class="diagram">
+    <div class="layer">
+      <span class="badge">Browser</span>
+      <h4>Vue 3 SPA</h4>
+      <ul>
+        <li>Vite dev server (port 3000)</li>
+        <li>Vue Router 4 (history mode)</li>
+        <li>Composition API + Composables</li>
+        <li>Axios HTTP client</li>
+        <li>Custom i18n (EN / IT / JA)</li>
+      </ul>
+    </div>
+    <div class="layer">
+      <span class="badge">Application</span>
+      <h4>FastAPI Service</h4>
+      <ul>
+        <li>Python 3.12 / Uvicorn (port 8001)</li>
+        <li>Pydantic models</li>
+        <li>CORS open to localhost</li>
+        <li>~25 REST endpoints under <code>/api/*</code></li>
+        <li>Stateless request handlers</li>
+      </ul>
+    </div>
+    <div class="layer">
+      <span class="badge">Data</span>
+      <h4>Mock Data Layer</h4>
+      <ul>
+        <li>JSON files in <code>server/data/</code></li>
+        <li>Loaded into memory at startup via <code>mock_data.py</code></li>
+        <li>Writes (Tasks, POs) are <strong>in-memory only</strong></li>
+        <li>No database. No persistence. (See §6.)</li>
+      </ul>
+    </div>
+    <div class="arrow">▲ HTTP/JSON ▲ (Vue ↔ FastAPI ↔ in-memory dicts)</div>
+  </div>
+
+  <h2>3. Frontend</h2>
+  <h3>3.1 Routes</h3>
+  <table>
+    <thead><tr><th>Path</th><th>View</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>/</code></td><td>Dashboard.vue</td><td>Overview — KPIs, Order Health, Pareto/ABC, Top Products</td></tr>
+      <tr><td><code>/inventory</code></td><td>Inventory.vue</td><td>Stock levels by SKU</td></tr>
+      <tr><td><code>/orders</code></td><td>Orders.vue</td><td>Order list and status</td></tr>
+      <tr><td><code>/spending</code></td><td>Spending.vue</td><td>Finance dashboard</td></tr>
+      <tr><td><code>/demand</code></td><td>Demand.vue</td><td>Demand forecasts</td></tr>
+      <tr><td><code>/reports</code></td><td>Reports.vue</td><td>Quarterly and monthly trends (R1)</td></tr>
+      <tr><td><code>/restocking</code></td><td>Restocking.vue</td><td>Recommended POs vs budget (R2)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.2 Cross-cutting composables</h3>
+  <table>
+    <thead><tr><th>Composable</th><th>Responsibility</th></tr></thead>
+    <tbody>
+      <tr><td><code>useFilters()</code></td><td>Singleton store for global filter bar (period range, warehouse, category, status). Exposes <code>getCurrentFilters()</code> for API calls.</td></tr>
+      <tr><td><code>useI18n()</code></td><td>Locale dictionaries (<code>en</code>, <code>it</code>, <code>ja</code>) with <code>t(key, params)</code>, currency wiring (USD / EUR / JPY), and product/customer/warehouse name translation.</td></tr>
+      <tr><td><code>useAuth()</code></td><td>Mock user identity (no real auth — stub for handover).</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.3 API client</h3>
+  <p>
+    All HTTP calls go through <code>client/src/api.js</code>, which wraps Axios
+    around <code>/api/*</code>. Reports.vue was migrated from a hardcoded URL to
+    this client during R1 — every view now uses the same surface, which is the
+    point at which to add auth headers, retry logic, or environment-driven base
+    URLs.
+  </p>
+
+  <h2>4. Backend</h2>
+  <h3>4.1 Endpoint surface</h3>
+  <table>
+    <thead><tr><th>Group</th><th>Endpoints</th><th>Filters</th></tr></thead>
+    <tbody>
+      <tr><td>Inventory</td><td><code>GET /api/inventory</code>, <code>GET /api/inventory/{id}</code></td><td>warehouse, category</td></tr>
+      <tr><td>Orders</td><td><code>GET /api/orders</code>, <code>GET /api/orders/{id}</code></td><td>warehouse, category, status, month, month-range</td></tr>
+      <tr><td>Demand</td><td><code>GET /api/demand</code></td><td>—</td></tr>
+      <tr><td>Backlog</td><td><code>GET /api/backlog</code></td><td>—</td></tr>
+      <tr><td>Dashboard</td><td><code>GET /api/dashboard/summary</code></td><td>warehouse, category, status, month</td></tr>
+      <tr><td>Reports</td><td><code>GET /api/reports/quarterly</code>, <code>/monthly-trends</code></td><td>warehouse, category, status, month <em>(added in R1)</em></td></tr>
+      <tr><td>Spending</td><td><code>/api/spending/summary | monthly | categories | transactions</code></td><td>—</td></tr>
+      <tr><td>Tasks</td><td><code>GET / POST / DELETE / PATCH /api/tasks</code></td><td>—</td></tr>
+      <tr><td>Purchase Orders</td><td><code>GET /api/purchase-orders</code>, <code>POST /api/purchase-orders</code> <em>(added in R2)</em></td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.2 Filter helpers</h3>
+  <p>
+    Two helpers in <code>main.py</code> compose every filtered endpoint:
+    <code>filter_by_month()</code> (handles single month, quarter <code>Q1-2025</code>,
+    or <code>YYYY-MM:YYYY-MM</code> range — extended in R5) and
+    <code>apply_filters()</code> (warehouse, category, status). Adding a new
+    filtered endpoint is a one-line addition once the route is declared.
+  </p>
+
+  <h3>4.3 Purchase order flow</h3>
+  <p>
+    <code>POST /api/purchase-orders</code> accepts either
+    <code>backlog_item_id</code> (reactive — fix a known shortage) or
+    <code>sku</code>+<code>warehouse</code> (proactive — restocking
+    recommendation). Resolution logic in <code>_resolve_item_for_po()</code>
+    looks up the SKU and item name from the appropriate source. Defaults are
+    applied for fields the operator doesn't supply (delivery date = today + 14d,
+    supplier = "TBD — Awaiting Procurement", status = Draft).
+  </p>
+
+  <h2>5. Cross-cutting concerns</h2>
+  <h3>5.1 Internationalization</h3>
+  <p>
+    Three locales shipped in <code>client/src/locales/</code>: <strong>en.js</strong>,
+    <strong>it.js</strong>, <strong>ja.js</strong>. The locale dictates the
+    display currency (USD / EUR / JPY) via <code>useI18n.currentCurrency</code>;
+    <code>utils/currency.js</code> performs the conversion. Adding a fourth
+    locale is two changes: drop a new file in <code>locales/</code>, register it
+    in the <code>useI18n()</code> composable.
+  </p>
+
+  <h3>5.2 Filter contract</h3>
+  <p>
+    Every filtered view subscribes to <code>useFilters()</code> and watches the
+    same four signals — <code>periodFrom/To</code>, <code>selectedLocation</code>,
+    <code>selectedCategory</code>, <code>selectedStatus</code>. The serialized
+    output is the same query-string shape across all endpoints, so a backend
+    change (e.g. range support) only needs to be lifted once.
+  </p>
+
+  <h3>5.3 Testing</h3>
+  <table>
+    <thead><tr><th>Layer</th><th>Location</th><th>Tooling</th></tr></thead>
+    <tbody>
+      <tr><td>Backend unit / integration</td><td><code>tests/backend/</code></td><td>pytest + FastAPI TestClient (51 tests)</td></tr>
+      <tr><td>End-to-end browser</td><td><code>tests/e2e/</code></td><td>Playwright + Chromium (R3 deliverable)</td></tr>
+    </tbody>
+  </table>
+
+  <h2>6. Known constraints &amp; risks</h2>
+  <div class="callout warn">
+    <strong>No persistence.</strong> Tasks and POs created at runtime live in
+    Python lists. Restarting <code>main.py</code> wipes them. The shape is
+    designed to make swapping in SQLite or Postgres a one-file change
+    (<code>mock_data.py</code> becomes a repository), but that work is out of
+    scope for this engagement.
+  </div>
+  <div class="callout warn">
+    <strong>No authentication.</strong> <code>useAuth()</code> returns a static
+    user. CORS is open to localhost. Before any production exposure this layer
+    needs a real identity provider integration.
+  </div>
+  <div class="callout">
+    <strong>In-memory mock data is large enough to be realistic</strong>
+    (~250 orders, ~30 SKUs across 3 warehouses) which lets the UI feel real
+    during demos without standing up a database.
+  </div>
+
+  <h2>7. Engagement deliverables map</h2>
+  <table>
+    <thead><tr><th>RFP item</th><th>Touchpoint in this codebase</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>R1 — Reports remediation</td><td><code>views/Reports.vue</code> (rewritten); <code>main.py</code> reports endpoints (filter-aware)</td><td><span class="pill pill-done">Done</span></td></tr>
+      <tr><td>R2 — Restocking</td><td><code>views/Restocking.vue</code>; <code>POST /api/purchase-orders</code> (new)</td><td><span class="pill pill-done">Done</span></td></tr>
+      <tr><td>R3 — E2E tests</td><td><code>tests/e2e/</code> (Playwright suite)</td><td><span class="pill pill-done">Done</span></td></tr>
+      <tr><td>R4 — Architecture doc</td><td>This document</td><td><span class="pill pill-done">Done</span></td></tr>
+      <tr><td>D1 — UI modernization</td><td>Design tokens via CSS variables in <code>App.vue</code>; profile chip; KPI delta colours; Pareto card</td><td><span class="pill pill-partial">Partial</span></td></tr>
+      <tr><td>D2 — i18n</td><td><code>locales/en.js | it.js | ja.js</code>; <code>useI18n()</code></td><td><span class="pill pill-done">Done</span></td></tr>
+      <tr><td>D3 — Dark mode</td><td>Theme toggle next to language switcher; CSS variable tokens</td><td><span class="pill pill-done">Done</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>8. Repository layout</h2>
+  <pre><code>meridian-workshop/
+├── client/                    Vue 3 + Vite frontend
+│   ├── src/
+│   │   ├── api.js             central HTTP client
+│   │   ├── views/             one .vue per route
+│   │   ├── components/        modals, FilterBar, ProfileMenu, …
+│   │   ├── composables/       useFilters, useI18n, useAuth
+│   │   ├── locales/           en.js / it.js / ja.js
+│   │   └── utils/             currency formatting
+│   └── package.json           npm run dev / build
+├── server/                    FastAPI backend
+│   ├── main.py                routes + filter helpers
+│   ├── mock_data.py           loads JSON into memory
+│   └── data/*.json            seed data
+├── tests/
+│   ├── backend/               pytest (51 unit tests)
+│   ├── e2e/                   Playwright (R3 deliverable)
+│   └── README.md
+├── proposal/                  RFP response artefacts
+│   ├── executive-summary.md
+│   ├── capabilities-deck.pptx
+│   └── architecture.html      ← you are here
+└── .claude/                   project-level Claude Code config
+    ├── commands/              /start, /test, /optimize, …
+    └── agents/                e.g. vue-expert
+</code></pre>
+
+  <h2>9. How to run the system</h2>
+  <pre><code>npm install        # in client/
+uv sync            # in server/
+./scripts/start.sh # both servers, ports 3000 + 8001
+</code></pre>
+
+  <p style="margin-top:3rem; color: var(--muted); font-size: 0.85rem;">
+    End of document — questions and follow-ups should go to the engagement
+    delivery team.
+  </p>
+</main>
+</body>
+</html>
