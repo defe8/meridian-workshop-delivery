@@ -1,5 +1,9 @@
 <template>
   <div class="app">
+    <div v-if="isDemoMode" class="demo-banner">
+      <strong>Demo</strong> — the backend is not deployed; data is read from bundled JSON, writes are simulated and reset on reload.
+      <a href="https://github.com/defe8/meridian-workshop-delivery" target="_blank" rel="noopener">Source on GitHub →</a>
+    </div>
     <header class="top-nav">
       <div class="nav-container">
         <div class="logo">
@@ -69,6 +73,7 @@ import ProfileDetailsModal from './components/ProfileDetailsModal.vue'
 import TasksModal from './components/TasksModal.vue'
 import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import ThemeToggle from './components/ThemeToggle.vue'
+import { isDemoMode } from './api'
 
 export default {
   name: 'App',
@@ -156,6 +161,7 @@ export default {
 
     return {
       t,
+      isDemoMode,
       showProfileDetails,
       showTasks,
       tasks,
@@ -250,6 +256,23 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+
+.demo-banner {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-bottom: 1px solid var(--warning);
+  padding: 0.5rem 1.5rem;
+  font-size: 0.8125rem;
+  text-align: center;
+  font-weight: 500;
+}
+
+.demo-banner a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  margin-left: 0.5rem;
 }
 
 .top-nav {

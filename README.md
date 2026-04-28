@@ -7,6 +7,16 @@ Vue 3 + FastAPI, three locales (English / Italian / Japanese), light & dark
 themes, Pareto/ABC analysis, budget-aware restocking with real purchase-order
 creation, and a Playwright suite covering the critical flows.
 
+### 🔗 Live demo
+
+**[https://defe8.github.io/meridian-workshop-delivery/](https://defe8.github.io/meridian-workshop-delivery/)**
+
+The live site runs in *demo mode*: the SPA is served from GitHub Pages and the
+seed JSON ships with the bundle, so reads (KPIs, Pareto, Reports, Restocking
+recommendations, filters, language switch, dark mode) all work as in the
+real app. Writes (creating tasks, generating POs) are simulated in memory and
+reset on reload — there's no live FastAPI backend behind the page.
+
 ---
 
 ## Preview
